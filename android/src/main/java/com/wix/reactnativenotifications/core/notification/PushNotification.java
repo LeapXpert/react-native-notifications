@@ -19,6 +19,8 @@ import com.wix.reactnativenotifications.core.JsIOHelper;
 import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 import com.wix.reactnativenotifications.core.ProxyService;
 
+import java.util.ArrayList;
+
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_FOREGROUND_EVENT_NAME;
@@ -72,10 +74,10 @@ public class PushNotification implements IPushNotification {
 
     @Override
     public void onReceived() throws InvalidNotificationException {
-        postNotification(null);
-        notifyReceivedToJS();
         if (mAppLifecycleFacade.isAppVisible()) {
             notifiyReceivedForegroundNotificationToJS();
+        } else {
+            notifyReceivedToJS();
         }
     }
 
@@ -165,6 +167,31 @@ public class PushNotification implements IPushNotification {
                 .setContentIntent(intent)
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setAutoCancel(true);
+
+        if (mNotificationProps.getIsOngoing()) {
+            notification.setOngoing(true);
+        }
+
+        ArrayList actionsArray = mNotificationProps.getActions();
+
+        if (actionsArray != null) {
+            // No icon for now. The icon value of 0 shows no icon.
+            int icon = 0;
+
+            // Add button for each actions.
+            for (int i = 0; i < actionsArray.size(); i++) {
+                String action = actionsArray.get(i).toString();
+
+                Intent actionIntent = new Intent(mContext, ProxyService.class);
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                actionIntent.setAction(mContext.getPackageName() + "." + action);
+                mNotificationProps.setAction(action);
+
+                PendingIntent pendingActionIntent = NotificationIntentAdapter.createPendingNotificationIntent(mContext, actionIntent, mNotificationProps);
+
+                notification.addAction(icon, action.toUpperCase(), pendingActionIntent);
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
