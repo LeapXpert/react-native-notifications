@@ -1,4 +1,4 @@
-import {NativeModules, DeviceEventEmitter} from "react-native";
+import { NativeModules, DeviceEventEmitter } from "react-native";
 import NotificationAndroid from "./notification";
 
 const RNNotifications = NativeModules.WixRNNotifications;
@@ -7,10 +7,14 @@ let notificationReceivedListener;
 let notificationReceivedInForegroundListener;
 let notificationOpenedListener;
 let registrationTokenUpdateListener;
+let notificationActionPressedListener;
 
 export class NotificationsAndroid {
   static setNotificationOpenedListener(listener) {
-    notificationOpenedListener = DeviceEventEmitter.addListener("notificationOpened", (notification) => listener(new NotificationAndroid(notification)));
+    notificationOpenedListener = DeviceEventEmitter.addListener(
+      "notificationOpened",
+      notification => listener(new NotificationAndroid(notification))
+    );
   }
 
   static clearNotificationOpenedListener() {
@@ -21,11 +25,17 @@ export class NotificationsAndroid {
   }
 
   static setNotificationReceivedListener(listener) {
-    notificationReceivedListener = DeviceEventEmitter.addListener("notificationReceived", (notification) => listener(new NotificationAndroid(notification)));
+    notificationReceivedListener = DeviceEventEmitter.addListener(
+      "notificationReceived",
+      notification => listener(new NotificationAndroid(notification))
+    );
   }
 
   static setNotificationReceivedInForegroundListener(listener) {
-    notificationReceivedInForegroundListener = DeviceEventEmitter.addListener("notificationReceivedInForeground", (notification) => listener(new NotificationAndroid(notification)));
+    notificationReceivedInForegroundListener = DeviceEventEmitter.addListener(
+      "notificationReceivedInForeground",
+      notification => listener(new NotificationAndroid(notification))
+    );
   }
 
   static clearNotificationReceivedListener() {
@@ -43,13 +53,30 @@ export class NotificationsAndroid {
   }
 
   static setRegistrationTokenUpdateListener(listener) {
-    registrationTokenUpdateListener = DeviceEventEmitter.addListener("remoteNotificationsRegistered", listener);
+    registrationTokenUpdateListener = DeviceEventEmitter.addListener(
+      "remoteNotificationsRegistered",
+      listener
+    );
   }
 
   static clearRegistrationTokenUpdateListener() {
     if (registrationTokenUpdateListener) {
       registrationTokenUpdateListener.remove();
       registrationTokenUpdateListener = null;
+    }
+  }
+
+  static setNotificationActionPressedListener(listener) {
+    notificationActionPressedListener = DeviceEventEmitter.addListener(
+      "notificationActionPressed",
+      listener
+    );
+  }
+
+  static clearNotificationActionPressedListener() {
+    if (notificationActionPressedListener) {
+      notificationActionPressedListener.remove();
+      notificationActionPressedListener = null;
     }
   }
 
@@ -62,7 +89,7 @@ export class NotificationsAndroid {
   }
 
   static localNotification(notification: Object) {
-    const id = Math.random() * 100000000 | 0; // Bitwise-OR forces value onto a 32bit limit
+    const id = (Math.random() * 100000000) | 0; // Bitwise-OR forces value onto a 32bit limit
     RNNotifications.postLocalNotification(notification, id);
     return id;
   }
@@ -74,9 +101,10 @@ export class NotificationsAndroid {
 
 export class PendingNotifications {
   static getInitialNotification() {
-    return RNNotifications.getInitialNotification()
-      .then((rawNotification) => {
-        return rawNotification ? new NotificationAndroid(rawNotification) : undefined;
-      });
+    return RNNotifications.getInitialNotification().then(rawNotification => {
+      return rawNotification
+        ? new NotificationAndroid(rawNotification)
+        : undefined;
+    });
   }
 }
