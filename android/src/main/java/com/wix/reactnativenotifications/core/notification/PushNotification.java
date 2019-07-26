@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 
 import com.facebook.react.bridge.ReactContext;
 import com.wix.reactnativenotifications.core.AppLaunchHelper;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_FOREGROUND_EVENT_NAME;
+import static com.wix.reactnativenotifications.Defs.NOTIFICATION_ACTION_PRESSED_EVENT_NAME;
 
 public class PushNotification implements IPushNotification {
 
@@ -83,8 +85,15 @@ public class PushNotification implements IPushNotification {
 
     @Override
     public void onOpened() {
-        digestNotification();
-        clearAllNotifications();
+        if (TextUtils.isEmpty(mNotificationProps.getAction())) {
+            digestNotification();
+        } else {
+            notifyPressedActionToJS();
+        }
+
+        if (!mNotificationProps.getIsOngoing()) {
+            clearAllNotifications();
+        }
     }
 
     @Override
@@ -235,6 +244,10 @@ public class PushNotification implements IPushNotification {
 
     private void notifyOpenedToJS() {
         mJsIOHelper.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, mNotificationProps.asBundle(), mAppLifecycleFacade.getRunningReactContext());
+    }
+
+    private void notifyPressedActionToJS() {
+        mJsIOHelper.sendEventToJS(NOTIFICATION_ACTION_PRESSED_EVENT_NAME, mNotificationProps.asBundle(), mAppLifecycleFacade.getRunningReactContext());
     }
 
     protected void launchOrResumeApp() {

@@ -35,6 +35,8 @@ public class PushNotificationProps {
 
     public void setAction(String action) { mBundle.putString("action", action); }
 
+    public String getAction() { return mBundle.getString("action"); }
+
     public Bundle asBundle() {
         return (Bundle) mBundle.clone();
     }
