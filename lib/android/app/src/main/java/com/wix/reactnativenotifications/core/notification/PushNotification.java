@@ -4,8 +4,11 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -19,11 +22,53 @@ import com.wix.reactnativenotifications.core.JsIOHelper;
 import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 import com.wix.reactnativenotifications.core.ProxyService;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import me.leolin.shortcutbadger.ShortcutBadger;
+
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME;
 
 public class PushNotification implements IPushNotification {
+
+    static class SoundChannelConfig {
+        private final String soundName;
+        private final String channelId;
+        private final String channelName;
+
+        private SoundChannelConfig(String soundName, String channelName) {
+            this.soundName = soundName;
+            this.channelId = channelName;
+            this.channelName = channelName;
+        }
+
+        private static final HashMap<String, SoundChannelConfig> soundConfigMap = new HashMap<String, SoundChannelConfig>() {{
+            put("incoming_message_1.wav", new SoundChannelConfig("incoming_message_1", "Incoming message"));
+            put("colleague_alert_5.wav", new SoundChannelConfig("colleague_alert_5", "Incoming AM message"));
+            put("client_alert_2.wav", new SoundChannelConfig("client_alert_2", "Incoming client message"));
+            put("", new SoundChannelConfig("silent", "Silent message"));
+        }};
+
+        public String getSoundName() {
+            return soundName;
+        }
+
+        public String getChannelId() {
+            return channelId;
+        }
+
+        public String getChannelName() {
+            return channelName;
+        }
+
+        public static SoundChannelConfig getSoundConfig(String soundName) {
+            SoundChannelConfig config = soundConfigMap.get(soundName);
+            return config == null ? soundConfigMap.get("") : config;
+        }
+
+    }
 
     final protected Context mContext;
     final protected AppLifecycleFacade mAppLifecycleFacade;
@@ -41,8 +86,6 @@ public class PushNotification implements IPushNotification {
         public void onAppNotVisible() {
         }
     };
-    final private String DEFAULT_CHANNEL_ID = "channel_01";
-    final private String DEFAULT_CHANNEL_NAME = "Channel Name";
 
     public static IPushNotification get(Context context, Bundle bundle) {
         Context appContext = context.getApplicationContext();
@@ -58,7 +101,7 @@ public class PushNotification implements IPushNotification {
         mAppLaunchHelper = appLaunchHelper;
         mJsIOHelper = JsIOHelper;
         mNotificationProps = createProps(bundle);
-        initDefaultChannel(context);
+//        initDefaultChannel(context);
     }
 
     @Override
@@ -146,21 +189,30 @@ public class PushNotification implements IPushNotification {
         return getNotificationBuilder(intent).build();
     }
 
+    private int getResourceId(String name) {
+        return mContext.getResources().getIdentifier(name, "raw", mContext.getPackageName());
+    }
+
     protected Notification.Builder getNotificationBuilder(PendingIntent intent) {
+        String soundName = mNotificationProps.getSound();
+        SoundChannelConfig soundChannelConfig = SoundChannelConfig.getSoundConfig(soundName);
+        // create channel
+        Uri soundUri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + mContext.getPackageName() + "/" + getResourceId(soundChannelConfig.getSoundName()));
+        createChannel(mContext, soundChannelConfig.getChannelId(), soundChannelConfig.getChannelName(), soundUri);
         final Notification.Builder notification = new Notification.Builder(mContext)
                 .setContentTitle(mNotificationProps.getTitle())
                 .setContentText(mNotificationProps.getBody())
                 .setContentIntent(intent)
+                .setSound(soundUri)
                 .setDefaults(Notification.DEFAULT_ALL)
-                .setAutoCancel(true);
+                .setAutoCancel(true)
+                ;
 
         setUpIcon(notification);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-            String channelId = mNotificationProps.getChannelId();
-            NotificationChannel channel = notificationManager.getNotificationChannel(channelId);
-            notification.setChannelId(channel != null ? channelId : DEFAULT_CHANNEL_ID);
+            String channelId = soundChannelConfig.getChannelId();
+            notification.setChannelId(channelId);
         }
 
         return notification;
@@ -194,6 +246,7 @@ public class PushNotification implements IPushNotification {
     protected void postNotification(int id, Notification notification) {
         final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(id, notification);
+        ShortcutBadger.applyCount(mContext, mNotificationProps.getBadge());
     }
 
     protected int createNotificationId(Notification notification) {
@@ -224,13 +277,17 @@ public class PushNotification implements IPushNotification {
         return mContext.getResources().getIdentifier(resName, resType, mContext.getPackageName());
     }
 
-    private void initDefaultChannel(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel defaultChannel = new NotificationChannel(DEFAULT_CHANNEL_ID,
-                    DEFAULT_CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_DEFAULT);
-            final NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.createNotificationChannel(defaultChannel);
+    private void createChannel(Context context, String channelId, String channelName, Uri soundUri) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
         }
+        NotificationChannel defaultChannel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build();
+        defaultChannel.setSound(soundUri, audioAttributes);
+        final NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.createNotificationChannel(defaultChannel);
     }
 }

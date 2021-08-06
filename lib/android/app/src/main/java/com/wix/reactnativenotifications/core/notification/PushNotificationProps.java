@@ -14,6 +14,22 @@ public class PushNotificationProps {
         return getBundleStringFirstNotNull("gcm.notification.title", "title");
     }
 
+    public String getSound() {
+        return getBundleStringFirstNotNull("gcm.notification.sound", "sound");
+    }
+
+    public int getBadge() {
+        if (mBundle.containsKey("badge")) {
+            try {
+                String badge = mBundle.getString("badge");
+                return Integer.parseInt(badge);
+            } catch (Exception e) {
+                return 1;
+            }
+        }
+        return 1;
+    }
+
     public String getBody() {
         return getBundleStringFirstNotNull("gcm.notification.body", "body");
     }
