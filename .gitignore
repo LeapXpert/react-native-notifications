@@ -15,8 +15,12 @@ npm-debug.log
 #####
 # Android
 
-android/local.properties
-android/*.iml
+lib/android/local.properties
+lib/android/*.iml
+lib/android/.idea
+lib/android/build
+lib/android/.gradle
+*.gradle
 
 #####
 # OS X temporary files that should never be committed
@@ -179,6 +183,14 @@ jspm_packages
 # Optional REPL history
 .node_repl_history
 
+# Intellij
+*.iml
+
 coverage/
 
 package-lock.json
+
+.history
+
+# Typescript build
+lib/dist/
