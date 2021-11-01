@@ -48,7 +48,7 @@ public class PushNotification implements IPushNotification {
             put("incoming_message_1.wav", new SoundChannelConfig("incoming_message_1", "Incoming message"));
             put("colleague_alert_5.wav", new SoundChannelConfig("colleague_alert_5", "Incoming AM message"));
             put("client_alert_2.wav", new SoundChannelConfig("client_alert_2", "Incoming client message"));
-            put("", new SoundChannelConfig("silent", "Silent message"));
+            put("", new SoundChannelConfig("silence", "Silent message"));
         }};
 
         public String getSoundName() {
