@@ -8,11 +8,11 @@
         <!--
          A proxy-service that gives the library an opportunity to do some work before launching/resuming the actual application task.
          -->
-        <service android:exported="false" android:name=".core.ProxyService"/>
+        <service android:name=".core.ProxyService"/>
 
         <service
-            android:exported="false"
-            android:name=".fcm.FcmInstanceIdListenerService">
+            android:name=".fcm.FcmInstanceIdListenerService"
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
                 <action android:name="com.google.firebase.INSTANCE_ID_EVENT" />
