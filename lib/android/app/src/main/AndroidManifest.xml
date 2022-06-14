@@ -12,7 +12,7 @@
 
         <service
             android:name=".fcm.FcmInstanceIdListenerService"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
                 <action android:name="com.google.firebase.INSTANCE_ID_EVENT" />
