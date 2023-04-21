@@ -1,9 +1,11 @@
 package com.wix.reactnativenotifications.core.notification;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +13,9 @@ import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 
+import com.facebook.react.HeadlessJsTaskService;
 import com.facebook.react.bridge.ReactContext;
 import com.wix.reactnativenotifications.core.AppLaunchHelper;
 import com.wix.reactnativenotifications.core.AppLifecycleFacade;
@@ -21,8 +25,10 @@ import com.wix.reactnativenotifications.core.InitialNotificationHolder;
 import com.wix.reactnativenotifications.core.JsIOHelper;
 import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 import com.wix.reactnativenotifications.core.ProxyService;
+import com.wix.reactnativenotifications.core.PushHeadlessTask;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import me.leolin.shortcutbadger.ShortcutBadger;
@@ -30,6 +36,8 @@ import me.leolin.shortcutbadger.ShortcutBadger;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME;
+
+import org.json.JSONObject;
 
 public class PushNotification implements IPushNotification {
 
@@ -106,11 +114,44 @@ public class PushNotification implements IPushNotification {
 
     @Override
     public void onReceived() throws InvalidNotificationException {
+        Log.w("onReceived", "is app:" + mAppLifecycleFacade.isAppVisible() + ", isAppDestroyed: " + mAppLifecycleFacade.isAppDestroyed() + ", isReactInitialized: " + mAppLifecycleFacade.isReactInitialized());
+        try {
+            String raw = mNotificationProps.asBundle().getString("raw");
+            JSONObject obj = new JSONObject(raw);
+            if (!mAppLifecycleFacade.isAppVisible() && "call_received".equalsIgnoreCase(obj.getString("type"))) {
+                handleCallEvent();
+                return;
+            }
+        } catch (Exception e) {
+            //
+        }
+
         if (!mAppLifecycleFacade.isAppVisible()) {
             postNotification(null);
             notifyReceivedBackgroundToJS();
         } else {
             notifyReceivedToJS();
+        }
+
+
+    }
+
+    void handleCallEvent() {
+        Intent service = new Intent(mContext, PushHeadlessTask.class);
+        service.putExtras(mNotificationProps.asBundle());
+        try {
+//            ComponentName name;
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                name = mContext.startForegroundService(service);
+//            } else {
+//                name = mContext.startService(service);
+//            }
+            ComponentName name = mContext.startService(service);
+            if (name != null) {
+                HeadlessJsTaskService.acquireWakeLockNow(mContext);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -205,8 +246,7 @@ public class PushNotification implements IPushNotification {
                 .setContentIntent(intent)
                 .setSound(soundUri)
                 .setDefaults(Notification.DEFAULT_ALL)
-                .setAutoCancel(true)
-                ;
+                .setAutoCancel(true);
 
         setUpIcon(notification);
 
@@ -290,4 +330,5 @@ public class PushNotification implements IPushNotification {
         final NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.createNotificationChannel(defaultChannel);
     }
+
 }
