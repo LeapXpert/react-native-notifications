@@ -113,5 +113,8 @@
       "text",
       "html"
     ]
+  },
+  "dependencies": {
+    "jest-matcher-utils": "^29.7.0"
   }
 }
