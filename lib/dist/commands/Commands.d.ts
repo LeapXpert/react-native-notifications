@@ -24,6 +24,7 @@ export declare class Commands {
     isRegisteredForRemoteNotifications(): Promise<boolean>;
     checkPermissions(): Promise<NotificationPermissions>;
     removeAllDeliveredNotifications(): void;
+    removeDeliveredNotificationByRoomId(roomId: string): void;
     removeDeliveredNotifications(identifiers: Array<string>): void;
     getDeliveredNotifications(): Promise<Notification[]>;
     refreshToken(): void;

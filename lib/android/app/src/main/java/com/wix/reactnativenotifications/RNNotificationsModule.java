@@ -2,9 +2,12 @@ package com.wix.reactnativenotifications;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
 import com.facebook.react.bridge.ActivityEventListener;
@@ -29,6 +32,9 @@ import com.wix.reactnativenotifications.core.notificationdrawer.PushNotification
 import com.wix.reactnativenotifications.fcm.FcmInstanceIdRefreshHandlerService;
 
 import static com.wix.reactnativenotifications.Defs.LOGTAG;
+import static com.wix.reactnativenotifications.Defs.NOTIFICATION_DATA_NAME;
+
+import org.json.JSONObject;
 
 public class RNNotificationsModule extends ReactContextBaseJavaModule implements ActivityEventListener {
 
@@ -63,7 +69,7 @@ public class RNNotificationsModule extends ReactContextBaseJavaModule implements
     @Override
     public void onNewIntent(Intent intent) {
         if (NotificationIntentAdapter.canHandleIntent(intent)) {
-            Bundle notificationData = intent.getExtras();
+            Bundle notificationData = NotificationIntentAdapter.extractPendingNotificationDataFromIntent(intent);
             final IPushNotification notification = PushNotification.get(getReactApplicationContext().getApplicationContext(), notificationData);
             if (notification != null) {
                 notification.onOpened();
@@ -128,6 +134,31 @@ public class RNNotificationsModule extends ReactContextBaseJavaModule implements
     @ReactMethod void removeAllDeliveredNotifications() {
         IPushNotificationsDrawer notificationsDrawer = PushNotificationsDrawer.get(getReactApplicationContext().getApplicationContext());
         notificationsDrawer.onAllNotificationsClearRequest();
+    }
+
+    @ReactMethod void removeDeliveredNotificationByRoomId(String roomId) throws IPushNotification.InvalidNotificationException {
+        final NotificationManager notificationManager = (NotificationManager) getReactApplicationContext().getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            StatusBarNotification[] notifications = notificationManager.getActiveNotifications();
+            if (notifications.length == 0) {
+                return;
+            }
+            for (StatusBarNotification sbn : notifications) {
+                Bundle extras = sbn.getNotification().extras;
+                if (extras.containsKey(NOTIFICATION_DATA_NAME)) {
+                    String rawData = (String) extras.get(NOTIFICATION_DATA_NAME);
+                    try {
+                        JSONObject obj = new JSONObject(rawData);
+                        String matrixRoomId = (String) obj.get("matrixRoomId");
+                        if (matrixRoomId.equals(roomId)) {
+                            cancelLocalNotification(sbn.getId());
+                        }
+                    }catch (Exception e) {
+                        //
+                    }
+                }
+            }
+        }
     }
 
     @ReactMethod

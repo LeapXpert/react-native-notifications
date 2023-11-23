@@ -70,6 +70,31 @@
     [center removeAllDeliveredNotifications];
 }
 
+- (void)removeDeliveredNotificationByRoomId:(NSString *)roomId {
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getDeliveredNotificationsWithCompletionHandler:^(NSArray<UNNotification *> * _Nonnull notifications) {
+        NSMutableArray<NSDictionary *> *formattedNotifications = [NSMutableArray new];
+        for (UNNotification *notification in notifications) {
+            UNNotificationContent *content = notification.request.content;
+            NSString*rawData = [content.userInfo valueForKey: @"raw"];
+            NSData *data = [rawData dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error = nil;
+            NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data
+                                                             options:kNilOptions
+                                                               error:&error];
+            if (error != nil) {
+                return;
+            }
+            NSString *matrixRoomId = [jsonResponse valueForKey: @"matrixRoomId"];
+            if (matrixRoomId == roomId) {
+                NSString *notiId = notification.request.identifier;
+                [self cancelLocalNotification: notiId];
+            }
+            
+        }
+    }];
+}
+
 - (void)removeDeliveredNotifications:(NSArray<NSString *> *)identifiers {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center removeDeliveredNotificationsWithIdentifiers:identifiers];

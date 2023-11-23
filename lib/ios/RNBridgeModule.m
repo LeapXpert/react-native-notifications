@@ -103,6 +103,10 @@ RCT_EXPORT_METHOD(removeAllDeliveredNotifications) {
     [_commandsHandler removeAllDeliveredNotifications];
 }
 
+RCT_EXPORT_METHOD(removeDeliveredNotificationByRoomId:(NSString *)roomId) {
+    [_commandsHandler removeDeliveredNotificationByRoomId: roomId];
+}
+
 RCT_EXPORT_METHOD(removeDeliveredNotifications:(NSArray<NSString *> *)identifiers) {
     [_commandsHandler removeDeliveredNotifications:identifiers];
 }

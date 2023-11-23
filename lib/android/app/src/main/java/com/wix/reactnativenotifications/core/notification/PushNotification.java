@@ -36,6 +36,7 @@ import me.leolin.shortcutbadger.ShortcutBadger;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME;
+import static com.wix.reactnativenotifications.Defs.NOTIFICATION_DATA_NAME;
 
 import org.json.JSONObject;
 
@@ -140,12 +141,6 @@ public class PushNotification implements IPushNotification {
         Intent service = new Intent(mContext, PushHeadlessTask.class);
         service.putExtras(mNotificationProps.asBundle());
         try {
-//            ComponentName name;
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                name = mContext.startForegroundService(service);
-//            } else {
-//                name = mContext.startService(service);
-//            }
             ComponentName name = mContext.startService(service);
             if (name != null) {
                 HeadlessJsTaskService.acquireWakeLockNow(mContext);
@@ -171,7 +166,10 @@ public class PushNotification implements IPushNotification {
     }
 
     protected int postNotification(Integer notificationId) {
-        final PendingIntent pendingIntent = getCTAPendingIntent();
+        if (mNotificationProps.isDataOnlyPushNotification()) {
+            return -1;
+        }
+        final PendingIntent pendingIntent = NotificationIntentAdapter.createPendingNotificationIntent(mContext, mNotificationProps);;
         final Notification notification = buildNotification(pendingIntent);
         return postNotification(notification, notificationId);
     }
@@ -221,11 +219,6 @@ public class PushNotification implements IPushNotification {
         return mAppVisibilityListener;
     }
 
-    protected PendingIntent getCTAPendingIntent() {
-        final Intent cta = new Intent(mContext, ProxyService.class);
-        return NotificationIntentAdapter.createPendingNotificationIntent(mContext, cta, mNotificationProps);
-    }
-
     protected Notification buildNotification(PendingIntent intent) {
         return getNotificationBuilder(intent).build();
     }
@@ -240,12 +233,16 @@ public class PushNotification implements IPushNotification {
         // create channel
         Uri soundUri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + mContext.getPackageName() + "/" + getResourceId(soundChannelConfig.getSoundName()));
         createChannel(mContext, soundChannelConfig.getChannelId(), soundChannelConfig.getChannelName(), soundUri);
+        String raw = mNotificationProps.asBundle().getString("raw");
+        Bundle bundle = new Bundle();
+        bundle.putString(NOTIFICATION_DATA_NAME,raw);
         final Notification.Builder notification = new Notification.Builder(mContext)
                 .setContentTitle(mNotificationProps.getTitle())
                 .setContentText(mNotificationProps.getBody())
                 .setContentIntent(intent)
                 .setSound(soundUri)
                 .setDefaults(Notification.DEFAULT_ALL)
+                .setExtras(bundle)
                 .setAutoCancel(true);
 
         setUpIcon(notification);
@@ -270,7 +267,7 @@ public class PushNotification implements IPushNotification {
     }
 
     private void setUpIconColor(Notification.Builder notification) {
-        int colorResID = getAppResourceId("colorAccent", "color");
+        int colorResID = getAppResourceId("notification_icon_background", "color");
         if (colorResID != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             int color = mContext.getResources().getColor(colorResID);
             notification.setColor(color);
@@ -309,8 +306,10 @@ public class PushNotification implements IPushNotification {
     }
 
     protected void launchOrResumeApp() {
-        final Intent intent = mAppLaunchHelper.getLaunchIntent(mContext);
-        mContext.startActivity(intent);
+        if (NotificationIntentAdapter.canHandleTrampolineActivity(mContext)) {
+            final Intent intent = mAppLaunchHelper.getLaunchIntent(mContext);
+            mContext.startActivity(intent);
+        }
     }
 
     private int getAppResourceId(String resName, String resType) {

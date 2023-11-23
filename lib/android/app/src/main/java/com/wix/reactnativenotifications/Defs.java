@@ -8,4 +8,5 @@ public interface Defs {
     String NOTIFICATION_RECEIVED_EVENT_NAME = "notificationReceived";
     String NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME = "notificationReceivedBackground";
     String NOTIFICATION_OPENED_EVENT_NAME = "notificationOpened";
+    String NOTIFICATION_DATA_NAME = "notificationData";
 }

@@ -82,6 +82,10 @@
     [_notificationCenter removeAllDeliveredNotifications];
 }
 
+- (void)removeDeliveredNotificationByRoomId:(NSString *)roomId {
+    // [_notificationCenter removeDeliveredNotificationByRoomId: roomId];
+}
+
 - (void)removeDeliveredNotifications:(NSArray<NSString *> *)identifiers {
     [_notificationCenter removeDeliveredNotifications:identifiers];
 }

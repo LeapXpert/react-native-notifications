@@ -35,12 +35,16 @@ export declare class NotificationsRoot {
     setCategories(categories: [NotificationCategory?]): void;
     /**
      * cancelLocalNotification
-    */
+     */
     cancelLocalNotification(notificationId: number): void;
     /**
      * removeAllDeliveredNotifications
      */
     removeAllDeliveredNotifications(): void;
+    /**
+     * removeDeliveredNotificationByRoomId
+     */
+    removeDeliveredNotificationByRoomId(roomId: string): void;
     /**
      * isRegisteredForRemoteNotifications
      */

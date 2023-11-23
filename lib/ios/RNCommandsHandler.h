@@ -39,6 +39,8 @@
 
 - (void)removeAllDeliveredNotifications;
 
+- (void)removeDeliveredNotificationByRoomId:(NSString *)roomId;
+
 - (void)removeDeliveredNotifications:(NSArray<NSString *> *)identifiers;
 
 - (void)getDeliveredNotifications:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
