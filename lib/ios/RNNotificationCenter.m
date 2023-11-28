@@ -76,21 +76,18 @@
         NSMutableArray<NSDictionary *> *formattedNotifications = [NSMutableArray new];
         for (UNNotification *notification in notifications) {
             UNNotificationContent *content = notification.request.content;
-            NSString*rawData = [content.userInfo valueForKey: @"raw"];
-            NSData *data = [rawData dataUsingEncoding:NSUTF8StringEncoding];
-            NSError *error = nil;
-            NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data
-                                                             options:kNilOptions
-                                                               error:&error];
-            if (error != nil) {
-                return;
+            NSObject*data = [content.userInfo valueForKey: @"raw"];
+            @try {
+                if ([data isKindOfClass:[NSDictionary class]]) {
+                    NSString *matrixRoomId = [data valueForKey: @"matrixRoomId"];
+                    if (matrixRoomId == roomId) {
+                        NSString *notiId = notification.request.identifier;
+                        [self cancelLocalNotification: [NSNumber numberWithInt:[notiId intValue]]];
+                    }
+                }
+            } @catch (NSException *exception) {
+                [NSLog(@"removeDeliveredNotificationByRoomId")]
             }
-            NSString *matrixRoomId = [jsonResponse valueForKey: @"matrixRoomId"];
-            if (matrixRoomId == roomId) {
-                NSString *notiId = notification.request.identifier;
-                [self cancelLocalNotification: notiId];
-            }
-            
         }
     }];
 }
