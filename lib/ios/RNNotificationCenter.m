@@ -86,7 +86,7 @@
                     }
                 }
             } @catch (NSException *exception) {
-                [NSLog(@"removeDeliveredNotificationByRoomId")];
+                NSLog(@"removeDeliveredNotificationByRoomId");
             }
         }
     }];
